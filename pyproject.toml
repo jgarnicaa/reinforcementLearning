@@ -1,0 +1,10 @@
+[project]
+name = "aibt-108"
+version = "0.1.0"
+description = "Course conten"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "discrete-optimization>=0.7.0",
+    "scikit-decide>=1.0.3",
+]
