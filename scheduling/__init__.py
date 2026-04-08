@@ -1,0 +1,1 @@
+"""Scheduling course module."""

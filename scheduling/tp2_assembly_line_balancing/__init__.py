@@ -1,0 +1,1 @@
+"""TP2: Assembly Line Balancing with Resource Constraints."""
