@@ -9,7 +9,7 @@ def _():
     import marimo as mo
     from heapq import heappop, heappush
     from itertools import count
-    from typing import Any, NamedTuple, Tuple, Callable, Optional, List, Dict
+    from typing import Any, NamedTuple, Tuple, Callable, Optional, List, Dict, Set
     from heapq import heappop, heappush
     from itertools import count
     from math import sqrt, atan, atan2, cos, sin, fabs, pi
@@ -19,8 +19,10 @@ def _():
     from collections import defaultdict
     from enum import Enum
     from copy import deepcopy
+    from skdecide import Value, Space, DeterministicPlanningDomain
     from skdecide.hub.space.gym import ListSpace
     from skdecide.hub.solver.astar import Astar as SkAstar
+    from skdecide.hub.solver.lazy_astar import LazyAstar as SkLazyAstar
     from skdecide.utils import rollout
     import pddlgym
     import os
@@ -37,27 +39,40 @@ def _():
     return (
         Any,
         Callable,
+        DeterministicPlanningDomain,
         Dict,
         Enum,
+        HEURISTICS,
         List,
         ListSpace,
         NamedTuple,
         Optional,
+        SEARCHES,
+        Set,
+        SkLazyAstar,
+        Space,
         Tuple,
+        Value,
         atan2,
         cos,
         count,
         deepcopy,
         defaultdict,
         fabs,
+        find_domain,
         folium,
         heappop,
         heappush,
         json,
         mo,
+        os,
+        parse_plan_step,
+        pddlgym,
         pi,
         plt,
         random,
+        rollout,
+        search_plan,
         sin,
         sqrt,
         time,
@@ -583,15 +598,15 @@ def _(Graph, List, Maze, Tuple):
         def __init__(self, maze: Maze):
             super().__init__()
             self._maze = maze
-    
+
         def generate_successors(self, node: Graph.Node) -> List[Tuple[Graph.Node, float, str]]:
             ### WRITE YOUR CODE HERE
             # If you get stuck, uncomment the line in the next cell to load a solution.
             pass
-    
+
         def is_goal(self, node: Graph.Node) -> bool:
             return self._maze.is_goal(node.data)
-    
+
         def render(self, node: Graph.Node) -> None:
             self._maze.render(node.data)
 
@@ -951,8 +966,8 @@ def _(
     Graph,
     List,
     Tuple,
-    WIND_DIRECTION,
     cos,
+    flown_distance,
     pi,
     sin,
     sqrt,
@@ -960,29 +975,21 @@ def _(
     AIRCRAFT_SPEED = 500
     WIND_SPEED = 50
 
-    class FlightGraphWithWind(FlightGraph):
+    class _FlightGraphWithWind(FlightGraph):
 
         def __init__(self, json_dict):
             super().__init__(json_dict)
 
-        def generate_successors(
-            self, node: Graph.Node
-        ) -> List[Tuple[Graph.Node, float, str]]:
+        def generate_successors(self, node: Graph.Node) -> List[Tuple[Graph.Node, float, str]]:
             for nwp, d in self._gotos[node.data].items():
                 # Computes coordinates of the direction vector in the Earth-centered system
                 dir_x = EARTH_RADIUS * (
                     (cos(nwp.lat * pi / 180.0) * cos(nwp.long * pi / 180.0))
-                    - (
-                        cos(node.data.lat * pi / 180.0)
-                        * cos(node.data.long * pi / 180.0)
-                    )
+                    - (cos(node.data.lat * pi / 180.0) * cos(node.data.long * pi / 180.0))
                 )
                 dir_y = EARTH_RADIUS * (
                     (cos(nwp.lat * pi / 180.0) * sin(nwp.long * pi / 180.0))
-                    - (
-                        cos(node.data.lat * pi / 180.0)
-                        * sin(node.data.long * pi / 180.0)
-                    )
+                    - (cos(node.data.lat * pi / 180.0) * sin(node.data.long * pi / 180.0))
                 )
                 dir_z = EARTH_RADIUS * (
                     sin(nwp.lat * pi / 180.0) - sin(node.data.lat * pi / 180.0)
@@ -1011,51 +1018,21 @@ def _(
                 # Normalize the direction vector
                 dir_na = dir_a / sqrt(dir_a * dir_a + dir_b * dir_b)
                 dir_nb = dir_b / sqrt(dir_a * dir_a + dir_b * dir_b)
-                # Compute wind vector in the tangential plane
-                w_a = WIND_SPEED * sin(WIND_DIRECTION * pi / 180.0)
-                w_b = WIND_SPEED * cos(WIND_DIRECTION * pi / 180.0)
-                # Compute speed along direction vector
-                mu = (dir_na * w_a) + (dir_nb * w_b)
-                phi = (
-                    (mu * mu)
-                    - (WIND_SPEED * WIND_SPEED)
-                    + (AIRCRAFT_SPEED * AIRCRAFT_SPEED)
-                )
-                assert phi >= 0
-                dir_speed = mu + sqrt(phi)
-                assert dir_speed > 0
-                flown_distance = (
-                    AIRCRAFT_SPEED * sqrt(dir_a * dir_a + dir_b * dir_b) / dir_speed
-                )
+                ### WRITE YOUR CODE HERE
+                # If you get stuck, uncomment the line in the next cell to load a solution.
                 yield (
                     Graph.Node(data=nwp, parent=node),
                     flown_distance,
                     str("GOTO {}".format(node.data)),
                 )
 
-    return AIRCRAFT_SPEED, FlightGraphWithWind, WIND_SPEED
+    return AIRCRAFT_SPEED, WIND_SPEED
 
 
 @app.cell
 def _(flight_graph):
     print("Paris: {}".format(flight_graph.departure))
     print("New York: {}".format(flight_graph.arrival))
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    from pathlib import Path as _Path
-
-    _notebook_dir = _Path(__file__).parent if "__file__" in globals() else _Path.cwd()
-    _wind_image_path = _notebook_dir / "flight_planning_with_wind.png"
-
-    _wind_display = (
-        mo.image(src=_wind_image_path.read_bytes(), width=600)
-        if _wind_image_path.exists()
-        else mo.md("*(Flight planning with wind image not found)*")
-    )
-    _wind_display
     return
 
 
@@ -1070,33 +1047,28 @@ def _(mo):
 @app.cell
 def _(mo):
     wind_sol_button = mo.ui.button(label="💡 Show Wind Solution", kind="success")
+
+    wind_sol_button = mo.ui.button(
+        label="💡 Show Wind Solution",
+        value=0,
+        on_click=lambda click_count: click_count + 1,
+        kind="success",
+    )
+    wind_sol_button
     return (wind_sol_button,)
 
 
 @app.cell
 def _(mo, wind_sol_button):
-    from pathlib import Path as _Path
+    if wind_sol_button.value > 0:
+        with open("solutions/flight_graph_wind.py", "r") as wind_sol_file:
+            wind_sol_code = wind_sol_file.read()
+        wind_sol_display_content = mo.ui.code_editor(value=wind_sol_code, language="python")
+        exec(wind_sol_code)
+    else:
+        wind_sol_display_content = mo.md("🔒 Click the button above to reveal the solution")
 
-    _wind_sol_path = (
-        _Path(__file__).parent if "__file__" in globals() else _Path.cwd()
-    ) / "solutions/flight_graph_wind.py"
-    _wind_sol_code = (
-        _wind_sol_path.read_text()
-        if _wind_sol_path.exists()
-        else "# flight_graph_wind.py not found"
-    )
-
-    mo.vstack(
-        [
-            mo.md("**Solution for Flight Planning with Wind:**"),
-            wind_sol_button,
-            (
-                mo.code(_wind_sol_code, language="python")
-                if wind_sol_button.value > 0
-                else mo.md("*Click the button above to reveal the solution*")
-            ),
-        ]
-    )
+    wind_sol_display_content
     return
 
 
@@ -1369,12 +1341,10 @@ def _(
     defaultdict,
     folium,
     pi,
+    random,
     sin,
     sqrt,
 ):
-    import random
-    from math import atan
-
     AIRCRAFT_SPEED_1 = 500
     WIND_SPEED_1 = 50
     NUM_WIND_SAMPLES = 3
@@ -1555,12 +1525,7 @@ def _(
                         ).add_to(m)
             return m  # Normalize the direction vector  # Compute wind vector in the tangential plane  # Compute speed along direction vector
 
-    return (
-        AIRCRAFT_SPEED_1,
-        FlightGraphWithProbabilisticWind,
-        WIND_SPEED_1,
-        random,
-    )
+    return AIRCRAFT_SPEED_1, FlightGraphWithProbabilisticWind, WIND_SPEED_1
 
 
 @app.cell
@@ -1784,27 +1749,17 @@ def _(mo):
 
 
 @app.cell
-def _():
-    from skdecide import Value, Space
-    from skdecide import DeterministicPlanningDomain
-    from skdecide.hub.space.gym import ListSpace
-
-    return DeterministicPlanningDomain, ListSpace, Space, Value
-
-
-@app.cell
 def _(
     AIRCRAFT_SPEED_1,
     FlightGraph,
     FlightGraphWithWind,
     FlightWithWindDomain,
+    SkLazyAstar,
     Value,
     WIND_SPEED_1,
     json,
+    rollout,
 ):
-    from skdecide.hub.solver.lazy_astar import LazyAstar as Astar_skdecide
-    from skdecide.utils import rollout
-
     with open("paris_newyork.json", "r") as f_3:
         g_3 = json.load(f_3)
     domain_factory = lambda: FlightWithWindDomain(FlightGraphWithWind(g_3))
@@ -1814,8 +1769,8 @@ def _(
         path_4.append(action)
         return f"GOTO {action}"
 
-    if Astar_skdecide.check_domain(domain_factory()):
-        solver_factory = lambda: Astar_skdecide(
+    if SkLazyAstar.check_domain(domain_factory()):
+        solver_factory = lambda: SkLazyAstar(
             domain_factory=domain_factory,
             heuristic=lambda _d, _s: Value(
                 cost=FlightGraph.compute_great_circle_distance(
@@ -1860,24 +1815,27 @@ def _(mo):
 
 
 @app.cell
-def _(plt):
-    import pddlgym
-
+def _(pddlgym, plt):
     env = pddlgym.make("PDDLEnvSokoban-v0")
-    # '%matplotlib widget' command supported automatically in marimo
     env.fix_problem_index(0)
     obs, debug_info = env.reset()
     img = env.render()
-    sokoban_img = plt.imshow(img)  # task02.pddl
+    plt.imshow(img)  # task02.pddl
+    plt.gcf()
     return env, obs
 
 
 @app.cell
-def _(env, obs):
-    import os
-    from pyperplan.planner import find_domain, HEURISTICS, search_plan, SEARCHES
-    from pddlgym.parser import parse_plan_step
-
+def _(
+    HEURISTICS,
+    SEARCHES,
+    env,
+    find_domain,
+    obs,
+    os,
+    parse_plan_step,
+    search_plan,
+):
     search = SEARCHES["astar"]
     heuristic = HEURISTICS["hmax"]
     pddl_problem_path = os.path.join("./sokoban", "task02.pddl")
@@ -1904,35 +1862,23 @@ def _(env, obs):
 
 
 @app.cell
-def _(mo):
-    step_slider = mo.ui.slider(0, 20, value=0, label="Sokoban Step", show_value=True)
-    return (step_slider,)
+def _(env, mo, plan_1, plt):
+    fig, ax = plt.subplots(1)
+    ax.set_aspect("equal")
+    ax.axis("off")
 
-
-@app.cell
-def _(env, mo, plan_1, plt, step_slider):
     # Reset environment
     env.reset()
+    image = ax.imshow(env.render())
+    ax.set_title(f"Step {0}")
+    mo.output.replace(fig)
 
     # Execute plan up to current step
-    current_step = min(step_slider.value, len(plan_1))
-    for _i in range(current_step):
+    for _i in range(len(plan_1)):
         env.step(plan_1[_i])
-
-    # Render current state
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.imshow(env.render())
-    ax.axis("off")
-    ax.set_title(f"Step {current_step}/{len(plan_1)}")
-    plt.close()
-
-    mo.vstack(
-        [
-            mo.md(f"**Interactive Sokoban Solution** ({len(plan_1)} steps total)"),
-            step_slider,
-            fig,
-        ]
-    )
+        image.set_data(env.render())
+        ax.set_title(f"Step {_i}/{len(plan_1) - 1}")
+        mo.output.replace(fig)
     return
 
 
