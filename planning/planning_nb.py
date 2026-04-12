@@ -7,6 +7,8 @@ app = marimo.App()
 @app.cell
 def _():
     import marimo as mo
+    from notebook_helpers import reveal_and_run
+
     from heapq import heappop, heappush
     from itertools import count
     from typing import Any, NamedTuple, Tuple, Callable, Optional, List, Dict, Set
@@ -71,6 +73,7 @@ def _():
         pi,
         plt,
         random,
+        reveal_and_run,
         rollout,
         search_plan,
         sin,
@@ -106,9 +109,13 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     A famous planning problem, the Towers of Hanoi:
-
-    ![Towers of Hanoi](public/tower-of-hanoi.png)
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.image("public/tower-of-hanoi.png")
     return
 
 
@@ -221,7 +228,9 @@ def _(Any, Enum, List, NamedTuple, Tuple, deepcopy, mo, plt, time):
             self._fig = None
             self._image = None
 
-        def get_transition_state_and_cost(self, state: State, action: Action) -> Tuple[State, float]:
+        def get_transition_state_and_cost(
+            self, state: State, action: Action
+        ) -> Tuple[State, float]:
             ### WRITE YOUR CODE HERE
             # If you get stuck, uncomment the line in the next cell to load a solution.
             # Every move costs 1 but 2 when we hit a wall
@@ -253,9 +262,10 @@ def _(Any, Enum, List, NamedTuple, Tuple, deepcopy, mo, plt, time):
             time.sleep(0.001)
             return self._fig  # Return figure for Marimo to display
 
-    maze = _Maze()
-    maze.render(maze.get_initial_state())
-    return (maze,)
+
+    _maze = _Maze()
+    _maze.render(_maze.get_initial_state())
+    return
 
 
 @app.cell
@@ -266,21 +276,18 @@ def _(mo):
         on_click=lambda click_count: click_count + 1,
         kind="success",
     )
-    maze_button
     return (maze_button,)
 
 
 @app.cell
-def _(maze_button, mo):
-    if maze_button.value > 0:
-        with open("solutions/maze.py", "r") as maze_file:
-            maze_code = maze_file.read()
-        maze_display_content = mo.ui.code_editor(value=maze_code, language="python")
-        exec(maze_code)
-    else:
-        maze_display_content = mo.md("🔒 Click the button above to reveal the solution")
-
-    maze_display_content
+def _(maze_button, mo, reveal_and_run):
+    maze_display, maze_fig = reveal_and_run(
+        button_value=maze_button.value,
+        filepath="solutions/maze.py",
+        exec_namespace=globals(),
+        output_var="maze_fig",
+    )
+    (mo.vstack([maze_button, maze_display]), maze_fig)
     return
 
 
@@ -358,16 +365,15 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    <div style="background-color:lightgreen">
-
-    A* is just one of many graph search algorithms. It is especially worth mentioning that local search algorithms, even if not optimal,
-    can be useful to solve large problems. A large amount of research works focus on automatically generating informative heuristics for complex domains
-    with multidimensional and non-Euclidean state spaces. Those interested can look at this useful [wiki on task planning research](https://planning.wiki/).
-    Other variants extend A* to probabilistic settings, see for instance [LAO*](http://rbr.cs.umass.edu/shlomo/papers/HZaij01b.pdf)
-
-    </div>
-    """)
+    mo.callout(
+        mo.md(r"""
+        A\* is just one of many graph search algorithms. It is especially worth mentioning that local search algorithms, even if not optimal,
+        can be useful to solve large problems. A large amount of research works focus on automatically generating informative heuristics for complex domains
+        with multidimensional and non-Euclidean state spaces. Those interested can look at this useful [wiki on task planning research](https://planning.wiki/).
+        Other variants extend A* to probabilistic settings, see for instance [LAO*](http://rbr.cs.umass.edu/shlomo/papers/HZaij01b.pdf)
+        """),
+        kind="success",
+    )
     return
 
 
@@ -391,7 +397,7 @@ def _(mo):
 def _(Any, Dict, List, Tuple):
     class Graph:
         class Node:
-            def __init__(self, data: Any, parent: 'Graph.Node' = None):
+            def __init__(self, data: Any, parent: "Graph.Node" = None):
                 self._data = data
                 self._parent = parent
                 self._successors: List[Tuple[Graph.Node, float, str]] = []
@@ -404,7 +410,7 @@ def _(Any, Dict, List, Tuple):
             def parent(self):
                 return self._parent
 
-            def __eq__(self, other: 'Graph.Node'):
+            def __eq__(self, other: "Graph.Node"):
                 return self._data.__eq__(other._data)
 
             def __hash__(self):
@@ -457,7 +463,6 @@ def _(mo):
 @app.cell
 def _(Callable, Graph, List, Optional, count, h, heappop, heappush, ncost):
     class _Astar:
-
         def __init__(
             self,
             graph: Graph,
@@ -566,21 +571,17 @@ def _(mo):
         on_click=lambda click_count: click_count + 1,
         kind="success",
     )
-    astar_button
     return (astar_button,)
 
 
 @app.cell
-def _(astar_button, mo):
-    if astar_button.value > 0:
-        with open("solutions/astar.py", "r") as astar_file:
-            astar_code = astar_file.read()
-        astar_display_content = mo.ui.code_editor(value=astar_code, language="python")
-        exec(astar_code)
-    else:
-        astar_display_content = mo.md("🔒 Click the button above to reveal the solution")
-
-    astar_display_content
+def _(astar_button, mo, reveal_and_run):
+    astar_display, _ = reveal_and_run(
+        button_value=astar_button.value,
+        filepath="solutions/astar.py",
+        exec_namespace=globals(),
+    )
+    mo.vstack([astar_button, astar_display])
     return
 
 
@@ -599,7 +600,9 @@ def _(Graph, List, Maze, Tuple):
             super().__init__()
             self._maze = maze
 
-        def generate_successors(self, node: Graph.Node) -> List[Tuple[Graph.Node, float, str]]:
+        def generate_successors(
+            self, node: Graph.Node
+        ) -> List[Tuple[Graph.Node, float, str]]:
             ### WRITE YOUR CODE HERE
             # If you get stuck, uncomment the line in the next cell to load a solution.
             pass
@@ -621,21 +624,17 @@ def _(mo):
         on_click=lambda click_count: click_count + 1,
         kind="success",
     )
-    maze_graph_button
     return (maze_graph_button,)
 
 
 @app.cell
-def _(maze_graph_button, mo):
-    if maze_graph_button.value > 0:
-        with open("solutions/maze_graph.py", "r") as maze_graph_file:
-            maze_graph_code = maze_graph_file.read()
-        maze_graph_display_content = mo.ui.code_editor(value=maze_graph_code, language="python")
-        exec(maze_graph_code)
-    else:
-        maze_graph_display_content = mo.md("🔒 Click the button above to reveal the solution")
-
-    maze_graph_display_content
+def _(maze_graph_button, mo, reveal_and_run):
+    maze_graph_display, _ = reveal_and_run(
+        button_value=maze_graph_button.value,
+        filepath="solutions/maze_graph.py",
+        exec_namespace=globals(),
+    )
+    mo.vstack([maze_graph_button, maze_graph_display])
     return
 
 
@@ -700,9 +699,9 @@ def _(
 ):
     EARTH_RADIUS = 3440
 
+
     # in nautical miles
     class FlightGraph(Graph):
-
         class Waypoint(NamedTuple):
             idx: int
             idy: int
@@ -856,6 +855,7 @@ def _(
                         ).add_to(m)
             return m
 
+
     with open("paris_newyork.json", "r") as f:
         g = json.load(f)
     flight_graph = FlightGraph(g)
@@ -880,11 +880,12 @@ def _(Astar, FlightGraph, flight_graph):
         # If you get stuck, uncomment the line in the next cell to load a solution.
         pass
 
+
     astar_fp = Astar(
         flight_graph,
-        lambda n : flight_graph_heuristic(flight_graph, n),
+        lambda n: flight_graph_heuristic(flight_graph, n),
         verbose=False,
-        render=False  # set to true if you want visual rendering of the search
+        render=False,  # set to true if you want visual rendering of the search
     )
     solution_fp = astar_fp.solve_from(FlightGraph.Node(flight_graph.departure))
     path_fp = [n[0].data for n in solution_fp[1]]
@@ -900,34 +901,18 @@ def _(mo):
         on_click=lambda click_count: click_count + 1,
         kind="success",
     )
-    flight_sol_button
     return (flight_sol_button,)
 
 
 @app.cell
-def _(Astar, FlightGraph, flight_graph, flight_sol_button, mo):
-    if flight_sol_button.value > 0:
-        with open("solutions/solve_flight.py", "r") as flight_sol_file:
-            flight_sol_code = flight_sol_file.read()
-        flight_sol_display_content = mo.ui.code_editor(value=flight_sol_code, language="python")
-        exec_flight_sol_namespace = {
-            "Astar": Astar,
-            "FlightGraph": FlightGraph,
-            "flight_graph": flight_graph
-        }
-        exec(flight_sol_code, exec_flight_sol_namespace)
-        path_fp_exec = exec_flight_sol_namespace["path_fp"]
-        flight_map = flight_graph.render(path_fp_exec[-1], path_fp_exec)
-        flight_sol_display_content = mo.vstack([
-            mo.md("### Solution Code:"),
-            mo.ui.code_editor(value=flight_sol_code, language="python"),
-            mo.md("### Flight Path Result:"),
-            flight_map
-        ])
-    else:
-        flight_sol_display_content = mo.md("🔒 Click the button above to reveal the solution")
-
-    flight_sol_display_content
+def _(flight_sol_button, mo, reveal_and_run):
+    flight_sol_display, flight_map = reveal_and_run(
+        button_value=flight_sol_button.value,
+        filepath="solutions/solve_flight.py",
+        exec_namespace=globals(),
+        output_var="flight_map",
+    )
+    (mo.vstack([flight_sol_button, flight_sol_display]), flight_map)
     return
 
 
@@ -975,21 +960,29 @@ def _(
     AIRCRAFT_SPEED = 500
     WIND_SPEED = 50
 
-    class _FlightGraphWithWind(FlightGraph):
 
+    class _FlightGraphWithWind(FlightGraph):
         def __init__(self, json_dict):
             super().__init__(json_dict)
 
-        def generate_successors(self, node: Graph.Node) -> List[Tuple[Graph.Node, float, str]]:
+        def generate_successors(
+            self, node: Graph.Node
+        ) -> List[Tuple[Graph.Node, float, str]]:
             for nwp, d in self._gotos[node.data].items():
                 # Computes coordinates of the direction vector in the Earth-centered system
                 dir_x = EARTH_RADIUS * (
                     (cos(nwp.lat * pi / 180.0) * cos(nwp.long * pi / 180.0))
-                    - (cos(node.data.lat * pi / 180.0) * cos(node.data.long * pi / 180.0))
+                    - (
+                        cos(node.data.lat * pi / 180.0)
+                        * cos(node.data.long * pi / 180.0)
+                    )
                 )
                 dir_y = EARTH_RADIUS * (
                     (cos(nwp.lat * pi / 180.0) * sin(nwp.long * pi / 180.0))
-                    - (cos(node.data.lat * pi / 180.0) * sin(node.data.long * pi / 180.0))
+                    - (
+                        cos(node.data.lat * pi / 180.0)
+                        * sin(node.data.long * pi / 180.0)
+                    )
                 )
                 dir_z = EARTH_RADIUS * (
                     sin(nwp.lat * pi / 180.0) - sin(node.data.lat * pi / 180.0)
@@ -1046,29 +1039,23 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    wind_sol_button = mo.ui.button(label="💡 Show Wind Solution", kind="success")
-
     wind_sol_button = mo.ui.button(
         label="💡 Show Wind Solution",
         value=0,
         on_click=lambda click_count: click_count + 1,
         kind="success",
     )
-    wind_sol_button
     return (wind_sol_button,)
 
 
 @app.cell
-def _(mo, wind_sol_button):
-    if wind_sol_button.value > 0:
-        with open("solutions/flight_graph_wind.py", "r") as wind_sol_file:
-            wind_sol_code = wind_sol_file.read()
-        wind_sol_display_content = mo.ui.code_editor(value=wind_sol_code, language="python")
-        exec(wind_sol_code)
-    else:
-        wind_sol_display_content = mo.md("🔒 Click the button above to reveal the solution")
-
-    wind_sol_display_content
+def _(mo, reveal_and_run, wind_sol_button):
+    wind_sol_display, _ = reveal_and_run(
+        button_value=wind_sol_button.value,
+        filepath="solutions/flight_graph_wind.py",
+        exec_namespace=globals(),
+    )
+    mo.vstack([wind_sol_button, wind_sol_display])
     return
 
 
@@ -1086,11 +1073,13 @@ def _(
     flight_graph_1 = FlightGraphWithWind(g_1)
     astar_2 = Astar(
         flight_graph_1,
-        lambda n: FlightGraph.compute_great_circle_distance(
-            n.data, flight_graph_1.arrival
-        )
-        * (AIRCRAFT_SPEED - WIND_SPEED)
-        / AIRCRAFT_SPEED,
+        lambda n: (
+            FlightGraph.compute_great_circle_distance(
+                n.data, flight_graph_1.arrival
+            )
+            * (AIRCRAFT_SPEED - WIND_SPEED)
+            / AIRCRAFT_SPEED
+        ),
         verbose=False,
         render=False,
     )
@@ -1125,9 +1114,7 @@ def _(mo):
 @app.cell
 def _(Any, Dict, List, Tuple):
     class ProbabilisticGraph:
-
         class StateNode:
-
             def __init__(self, data: Any):
                 self._data = data
                 self._best_action = None
@@ -1158,12 +1145,15 @@ def _(Any, Dict, List, Tuple):
             def __repr__(self):
                 return "Node(data: {}, best action: {}, best value: {})".format(
                     repr(self._data),
-                    repr(self._best_action) if self._best_action is not None else None,
-                    repr(self._best_value) if self._best_value is not None else None,
+                    repr(self._best_action)
+                    if self._best_action is not None
+                    else None,
+                    repr(self._best_value)
+                    if self._best_value is not None
+                    else None,
                 )
 
         class ActionNode:
-
             def __init__(self, data: Any):
                 self._data = data
                 self._successors: List[
@@ -1227,11 +1217,12 @@ def _(mo):
 @app.cell
 def _(Callable, List, Optional, ProbabilisticGraph, Set, random):
     class RTDP:
-
         def __init__(
             self,
             graph: ProbabilisticGraph,
-            heuristic: Optional[Callable[[ProbabilisticGraph.StateNode], float]] = None,
+            heuristic: Optional[
+                Callable[[ProbabilisticGraph.StateNode], float]
+            ] = None,
             max_steps: int = 1000,
             trials_number: int = 100,
             verbose: bool = False,
@@ -1349,8 +1340,8 @@ def _(
     WIND_SPEED_1 = 50
     NUM_WIND_SAMPLES = 3
 
-    class FlightGraphWithProbabilisticWind(ProbabilisticGraph):
 
+    class FlightGraphWithProbabilisticWind(ProbabilisticGraph):
         def __init__(self, json_dict):
             super().__init__()
             self._waypoints = {
@@ -1412,7 +1403,8 @@ def _(
             )
             dir_b = (
                 dir_x * (-sin(node.lat * pi / 180.0) * cos(node.long * pi / 180.0))
-                + dir_y * (-sin(node.lat * pi / 180.0) * sin(node.long * pi / 180.0))
+                + dir_y
+                * (-sin(node.lat * pi / 180.0) * sin(node.long * pi / 180.0))
                 + dir_z * cos(node.lat * pi / 180.0)
             )
             dir_na = dir_a / sqrt(dir_a * dir_a + dir_b * dir_b)
@@ -1421,7 +1413,9 @@ def _(
             w_b = wind_speed * cos(wind_direction * pi / 180.0)
             mu = dir_na * w_a + dir_nb * w_b
             phi = (
-                mu * mu - wind_speed * wind_speed + AIRCRAFT_SPEED_1 * AIRCRAFT_SPEED_1
+                mu * mu
+                - wind_speed * wind_speed
+                + AIRCRAFT_SPEED_1 * AIRCRAFT_SPEED_1
             )
             assert phi >= 0
             dir_speed = mu + sqrt(phi)
@@ -1435,7 +1429,9 @@ def _(
             self, node: ProbabilisticGraph.StateNode
         ) -> List[ProbabilisticGraph.ActionNode]:
             for nwp, d in self._gotos[node.data[0]].items():
-                action_node = ProbabilisticGraph.ActionNode(data="GOTO {}".format(nwp))
+                action_node = ProbabilisticGraph.ActionNode(
+                    data="GOTO {}".format(nwp)
+                )
                 for _ in range(NUM_WIND_SAMPLES):
                     wind_speed = random.uniform(
                         0.5 * WIND_SPEED_1, 1.5 * WIND_SPEED_1
@@ -1543,11 +1539,13 @@ def _(
     flight_graph_2 = FlightGraphWithProbabilisticWind(g_2)
     rtdp = RTDP(
         flight_graph_2,
-        lambda n: FlightGraph.compute_great_circle_distance(
-            n.data[0], flight_graph_2.arrival
-        )
-        * (AIRCRAFT_SPEED_1 - 1.5 * WIND_SPEED_1)
-        / AIRCRAFT_SPEED_1,
+        lambda n: (
+            FlightGraph.compute_great_circle_distance(
+                n.data[0], flight_graph_2.arrival
+            )
+            * (AIRCRAFT_SPEED_1 - 1.5 * WIND_SPEED_1)
+            / AIRCRAFT_SPEED_1
+        ),
         max_steps=1000,
         trials_number=100,
         verbose=False,
@@ -1692,8 +1690,8 @@ def _(
         T_value = float  # Type of transition values (rewards or costs)
         T_info = None  # Type of additional information in environment outcome
 
-    class FlightWithWindDomain(D):
 
+    class FlightWithWindDomain(D):
         def __init__(self, flight_graph_with_wind: FlightGraphWithWind):
             self._flight_graph = flight_graph_with_wind
 
@@ -1710,14 +1708,18 @@ def _(
                 if e[0].data == next_state:
                     return Value(cost=e[1])
 
-        def _get_next_state(self, memory: D.T_state, action: D.T_event) -> D.T_state:
+        def _get_next_state(
+            self, memory: D.T_state, action: D.T_event
+        ) -> D.T_state:
             # The action directly points to the next waypoint, it's the same object
             return action
 
         def _get_action_space_(self) -> Space[D.T_event]:
             return ListSpace(self._flight_graph._gotos.keys())
 
-        def _get_applicable_actions_from(self, memory: D.T_state) -> Space[D.T_event]:
+        def _get_applicable_actions_from(
+            self, memory: D.T_state
+        ) -> Space[D.T_event]:
             return ListSpace(
                 [
                     e[0].data
@@ -1765,9 +1767,11 @@ def _(
     domain_factory = lambda: FlightWithWindDomain(FlightGraphWithWind(g_3))
     path_4 = []
 
+
     def path_retriever(action):
         path_4.append(action)
         return f"GOTO {action}"
+
 
     if SkLazyAstar.check_domain(domain_factory()):
         solver_factory = lambda: SkLazyAstar(
@@ -1793,7 +1797,9 @@ def _(
                 max_framerate=30,
                 render=False,
                 action_formatter=lambda a: path_retriever(a),
-                outcome_formatter=lambda o: f"{o.observation} - cost: {o.value.cost:.2f}",
+                outcome_formatter=lambda o: (
+                    f"{o.observation} - cost: {o.value.cost:.2f}"
+                ),
             )
     else:
         evaluation_domain = None

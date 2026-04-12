@@ -1,11 +1,3 @@
-from enum import Enum
-from typing import *
-
-from skdecide import *
-from skdecide.builders.domain import *
-from skdecide.hub.space.gym import ListSpace
-
-
 class D(MDPDomain, Goals, Renderable):
     T_state = Tree.Node  # Type of states
     T_observation = T_state  # Type of observations
@@ -37,9 +29,11 @@ class ProbabilisticGameDomain(D):
         next_state: Optional[D.T_state] = None,
     ) -> Value[D.T_value]:
         return Value(
-            reward=(2 * int(self._max_or_min_player) - 1) * next_state.terminal_value
-            if next_state.terminal and memory != next_state
-            else 0.0
+            reward=(
+                (2 * int(self._max_or_min_player) - 1) * next_state.terminal_value
+                if next_state.terminal and memory != next_state
+                else 0.0
+            )
         )
 
     def _get_next_state_distribution(

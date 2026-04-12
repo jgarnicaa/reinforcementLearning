@@ -35,13 +35,13 @@ def call_game_rtdp(
     )
     rtdp_factory = lambda: LRTDP(
         domain_factory=domain_factory,
-        heuristic=lambda d, s: Value(reward=max_value)
-        if max_or_min_player
-        else Value(cost=max_value),
+        heuristic=lambda d, s: (
+            Value(reward=max_value) if max_or_min_player else Value(cost=max_value)
+        ),
         discount=1.0,
         epsilon=0.001,
         parallel=False,
-        debug_logs=False,
+        verbose=False,
     )
     with rtdp_factory() as rtdp:
         rtdp.solve()

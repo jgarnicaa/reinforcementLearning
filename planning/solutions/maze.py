@@ -77,4 +77,4 @@ class Maze:
 
 
 maze = Maze()
-maze.render(maze.get_initial_state())
+maze_fig = maze.render(maze.get_initial_state())

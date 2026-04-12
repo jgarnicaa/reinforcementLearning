@@ -10,4 +10,4 @@ astar_fp = Astar(
 )
 solution_fp = astar_fp.solve_from(FlightGraph.Node(flight_graph.departure))
 path_fp = [n[0].data for n in solution_fp[1]]
-flight_graph.render(path_fp[-1], path_fp)
+flight_map = flight_graph.render(path_fp[-1], path_fp)

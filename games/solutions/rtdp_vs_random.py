@@ -1,6 +1,3 @@
-import random
-from skdecide.hub.solver.lrtdp import LRTDP
-
 tic_tac_toe = TicTacToe(TIC_TAC_TOE)
 tic_tac_toe_tree = TicTacToeTree(tic_tac_toe)
 
@@ -18,7 +15,7 @@ def call_game_rtdp(
         discount=1.0,
         epsilon=0.001,
         parallel=False,
-        debug_logs=False,
+        verbose=False,
     )
     with rtdp_factory() as rtdp:
         rtdp.solve()
@@ -37,7 +34,7 @@ def random_player_policy(node: Tree.Node) -> List[Tuple[float, Tree.Node]]:
 
 
 node = tic_tac_toe_tree.get_node(data=tic_tac_toe.reset())
-tic_tac_toe.render(node.data)
+tic_tac_toe_fig = tic_tac_toe.render(node.data)
 
 while not node.terminal:
     if node.max_player:

@@ -1,5 +1,3 @@
-from typing import Callable
-
 def expectiminimax(
     node: ProbabilisticTree.StateNode,
     tree: ProbabilisticTree,
