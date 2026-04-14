@@ -286,7 +286,7 @@ def test_sgs():
     try:
         schedule = sgs_algorithm(rcpsp_problem, random_perm)
         solution = RcpspSolution(problem=rcpsp_problem, rcpsp_schedule=schedule)
-        makespan = rcpsp_problem.evaluate(solution)
+        makespan = rcpsp_problem.evaluate(solution)["makespan"]
         is_feasible = rcpsp_problem.satisfy(solution)
 
         print(f"✓ SGS completed! Makespan: {makespan}, Feasible: {is_feasible}\n")
@@ -306,7 +306,7 @@ def test_sgs():
             perm = create_priority_permutation(rcpsp_problem, rule=rule)
             schedule = sgs_algorithm(rcpsp_problem, perm)
             solution = RcpspSolution(problem=rcpsp_problem, rcpsp_schedule=schedule)
-            makespan = rcpsp_problem.evaluate(solution)
+            makespan = rcpsp_problem.evaluate(solution)["makespan"]
             print(f"   {rule.upper():4s}: makespan = {makespan}")
         except NotImplementedError:
             print(f"   {rule.upper():4s}: not implemented")
