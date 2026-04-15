@@ -12,6 +12,7 @@ dependencies = [
     "nevergrad>=1.0.12",
     "openap==1.5",
     "pddlgym>=0.0.7",
+    "pygame>=2.6.1",
     "pyperplan>=2.1",
     "pytz>=2026.1.post1",
     "ray>=2.37.0",
