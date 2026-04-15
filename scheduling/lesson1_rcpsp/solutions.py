@@ -235,7 +235,7 @@ def demonstrate_solutions():
         schedule = sgs_algorithm(rcpsp_problem, perm)
         solution = RcpspSolution(problem=rcpsp_problem, rcpsp_schedule=schedule)
 
-        makespan = rcpsp_problem.evaluate(solution)
+        makespan = rcpsp_problem.evaluate(solution)["makespan"]
         is_feasible = rcpsp_problem.satisfy(solution)
 
         results[rule] = makespan
@@ -254,7 +254,7 @@ def demonstrate_solutions():
     print("="*80 + "\n")
 
     best_solution = random_search_sgs(rcpsp_problem, n_iterations=500)
-    best_makespan = rcpsp_problem.evaluate(best_solution)
+    best_makespan = rcpsp_problem.evaluate(best_solution)["makespan"]
 
     print(f"\n   Final best makespan: {best_makespan}")
     print(f"   Improvement over best priority rule: "

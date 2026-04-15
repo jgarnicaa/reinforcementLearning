@@ -169,10 +169,10 @@ def _compute_task_lanes(tasks_with_times):
         tasks_with_times: List of (task_id, start, end) tuples
 
     Returns:
-        Dictionary mapping task_id to lane number (0, 1, 2, ...)
+        Tuple of (task_lanes dict, num_lanes int)
     """
     if not tasks_with_times:
-        return {}
+        return {}, 0
 
     # Sort tasks by start time
     sorted_tasks = sorted(tasks_with_times, key=lambda x: x[1])
@@ -235,7 +235,6 @@ def visualize_solution(
                 start = solution.task_schedule[task]
                 end = start + problem.task_times[task]
                 tasks_with_times.append((task, start, end))
-
         task_lanes, num_lanes = _compute_task_lanes(tasks_with_times)
         station_lanes[station] = task_lanes
         station_num_lanes[station] = num_lanes

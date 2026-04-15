@@ -14,7 +14,32 @@ from scheduling.tp2_assembly_line_balancing.utils import (
     visualize_solution,
     print_solution_info,
 )
+import networkx as nx
+def get_topological_order_task(problem: RCALBPProblem):
+    gr = nx.DiGraph()
+    for n in problem.tasks_list:
+        gr.add_node(n)
+    for t in problem.successors:
+        for succ in problem.successors[t]:
+            gr.add_edge(t, succ)
+    return list(nx.topological_sort(gr))
 
+def build_dummy_solution(problem: RCALBPProblem):
+    """All on stations[0], respecting precedence constraint"""
+    topo_sort = get_topological_order_task(problem)
+    first_station = problem.stations[0]
+    task_assignment = {t: first_station for t in problem.tasks_list}
+    task_schedule = {}
+    current_time = 0
+    for task in topo_sort:
+        task_schedule[task] = current_time
+        current_time += problem.task_times[task]
+    return RCALBPSolution(
+        problem=problem,
+        task_assignment=task_assignment,
+        task_schedule=task_schedule,
+        cycle_time=current_time,
+    )
 
 def main():
     print("\n" + "=" * 80)
@@ -67,7 +92,8 @@ def main():
     print("=" * 80 + "\n")
 
     # Get dummy solution
-    solution = problem.get_dummy_solution()
+    #solution = problem.get_dummy_solution()
+    solution = build_dummy_solution(problem)
 
     print("Solution Components:")
     print(f"  - Task Assignment: {len(solution.task_assignment)} tasks assigned")
