@@ -37,14 +37,21 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    r"""
+@app.cell
+def _():
+    from skdecide import Domain, Value, MDPDomain, SingleValueDistribution, Space, DiscreteDistribution
+    from skdecide.builders.domain import Actions, Markovian, Rewards, Initializable, Renderable, Goals
     from enum import Enum
-    from typing import *
-
-    from skdecide import *
-    from skdecide.builders.domain import *
-
+    from typing import NamedTuple, Optional, Any
+    from copy import deepcopy
+    # %matplotlib inline
+    import matplotlib.pyplot as plt
+    from IPython.display import display, clear_output
+    import numpy as np
+    from skdecide.hub.solver.lrtdp import LRTDP
+    from skdecide.utils import rollout
+    from math import sqrt
+    from skdecide.hub.space.gym import ListSpace, EnumSpace
 
     # Example of State type (adapt to your needs)
     class State(NamedTuple):
@@ -60,7 +67,7 @@ app._unparsable_cell(
         right = 3
 
 
-    class D(MDPDomain, Renderable):
+    class D(MDPDomain, Renderable, Goals):
         T_state = State  # Type of states
         T_observation = T_state  # Type of observations
         T_event = Action  # Type of events
@@ -96,9 +103,26 @@ app._unparsable_cell(
 
         def _render_from(self, memory: D.T_state, **kwargs: Any) -> Any:
             pass
-    """,
-    name="_"
-)
+
+    return (
+        Action,
+        Any,
+        D,
+        DiscreteDistribution,
+        EnumSpace,
+        LRTDP,
+        ListSpace,
+        Optional,
+        Space,
+        State,
+        Value,
+        clear_output,
+        deepcopy,
+        display,
+        np,
+        plt,
+        sqrt,
+    )
 
 
 @app.cell(hide_code=True)
@@ -145,22 +169,24 @@ def _(mo):
     return
 
 
-app._unparsable_cell(
-    """
-    from enum import Enum
-    from typing import *
-    from copy import deepcopy
-
-    from skdecide import *
-    from skdecide.builders.domain import *
-    from skdecide.hub.space.gym import EnumSpace, ListSpace
-
-    # %matplotlib inline
-    import matplotlib.pyplot as plt
-    from IPython.display import display, clear_output
-
-
-    DEFAULT_MAZE = \"\"\"
+@app.cell
+def _(
+    Action,
+    Any,
+    D,
+    DiscreteDistribution,
+    EnumSpace,
+    ListSpace,
+    Optional,
+    Space,
+    State,
+    Value,
+    clear_output,
+    deepcopy,
+    display,
+    plt,
+):
+    DEFAULT_MAZE = """
     +-+-+-+-+o+-+-+-+-+-+
     |   |             | |
     + + + +-+-+-+ +-+ + +
@@ -182,47 +208,23 @@ app._unparsable_cell(
     + +-+ +-+-+-+-+ + + +
     |   |       |     | |
     +-+-+-+-+-+x+-+-+-+-+
-    \"\"\"
-
-
-    # Example of State type (adapt to your needs)
-    class State(NamedTuple):
-        x: int
-        y: int
-
-
-    # Example of Action type (adapt to your needs)
-    class Action(Enum):
-        up = 0
-        down = 1
-        left = 2
-        right = 3
-
-
-    class D(MDPDomain, Goals, Renderable):
-        T_state = State  # Type of states
-        T_observation = T_state  # Type of observations
-        T_event = Action  # Type of events
-        T_value = float  # Type of transition values (rewards or costs)
-        T_info = None  # Type of additional information in environment outcome
-
-
+    """
     class TeleportationMazeDomain(D):
 
         def __init__(self, maze_str: str = DEFAULT_MAZE, dollar_cost=1.0, dollar_probability=0.9):
             maze = []
             self._dollars = []
-            for y, line in enumerate(maze_str.strip().split(\"\\n\")):
+            for y, line in enumerate(maze_str.strip().split("\n")):
                 line = line.rstrip()
                 row = []
                 for x, c in enumerate(line):
-                    if c in {\" \", \"o\", \"x\", \"$\"}:
+                    if c in {" ", "o", "x", "$"}:
                         row.append(1)  # spaces are 1s
-                        if c == \"o\":
+                        if c == "o":
                             self._start = State(x, y)
-                        if c == \"x\":
+                        if c == "x":
                             self._goal = State(x, y)
-                        if c == \"$\":
+                        if c == "$":
                             self._dollars.append(State(x, y))
                     else:
                         row.append(0)  # walls are 0s
@@ -348,8 +350,8 @@ app._unparsable_cell(
         def _render_from(self, memory: D.T_state, **kwargs: Any) -> Any:
             if self._ax is None:
                 fig, ax = plt.subplots(1)
-                #fig.canvas.set_window_title(\"Maze\")
-                ax.set_aspect(\"equal\")  # set the x and y axes to the same scale
+                #fig.canvas.set_window_title("Maze")
+                ax.set_aspect("equal")  # set the x and y axes to the same scale
                 plt.xticks([])  # remove the tick marks by setting to an empty list
                 plt.yticks([])  # remove the tick marks by setting to an empty list
                 ax.invert_yaxis()  # invert the y-axis so the first row of data is at the top
@@ -374,9 +376,7 @@ app._unparsable_cell(
 
     maze = TeleportationMazeDomain()
     maze.render(maze._get_initial_state_())
-    """,
-    name="_"
-)
+    return DEFAULT_MAZE, TeleportationMazeDomain
 
 
 @app.cell(hide_code=True)
@@ -404,10 +404,7 @@ def _(mo):
 
 
 @app.cell
-def _(DEFAULT_MAZE, TeleportationMazeDomain, Value):
-    from skdecide.hub.solver.lrtdp import LRTDP
-    from skdecide.utils import rollout
-    from math import sqrt
+def _(DEFAULT_MAZE, LRTDP, TeleportationMazeDomain, Value, sqrt):
     domain_factory = lambda : TeleportationMazeDomain(maze_str=DEFAULT_MAZE, dollar_cost=1.0, dollar_probability=0.9)
     solver_factory = lambda : LRTDP(domain_factory=domain_factory, heuristic=lambda d, s: Value(cost=sqrt((d._goal.x - s.x) ** 2 + (d._goal.y - s.y) ** 2)), discount=1.0, epsilon=0.001, parallel=False, verbose=False)
     with solver_factory() as solver:
@@ -442,7 +439,7 @@ def _(DEFAULT_MAZE, TeleportationMazeDomain, Value):
         print()
         for (i, s) in enumerate(path):
             evaluation_domain.render(s, path=path[:i])
-    return LRTDP, sqrt
+    return
 
 
 @app.cell(hide_code=True)
@@ -482,9 +479,8 @@ def _(mo):
 
 
 @app.cell
-def _(DEFAULT_MAZE, LRTDP, TeleportationMazeDomain, Value, sqrt):
-    import matplotlib.pyplot as plt
-    import numpy as np
+def _(DEFAULT_MAZE, LRTDP, TeleportationMazeDomain, Value, np, plt, sqrt):
+
 
     def evaluate_setting(dollar_cost: float, dollar_probability: float, n_rollouts: int=500, max_steps: int=400):
     # ===============================================================
